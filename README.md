@@ -1,99 +1,90 @@
 # LinkVault
 
-LinkVault - простая браузерная программа для сохранения ссылок, описаний и скриншотов. Она работает локально в браузере: без установки, без сервера, без аккаунта и без `.exe` файла.
+LinkVault is a simple browser app for saving links, notes, and screenshots in one local table. It runs directly in your browser and does not require installation, a server, an account, or an `.exe` file.
 
-![Скриншот LinkVault](assets/screenshot.png)
+![LinkVault screenshot](assets/screenshot.png)
 
-## Скачать
+## Download
 
-[Скачать готовый архив LinkVault.zip](https://github.com/Hyrican/MyLinks/raw/main/LinkVault.zip)
+[Download LinkVault.zip](https://github.com/milleran41/MyLinks/raw/main/LinkVault.zip)
 
-## Как запустить
+## How to Run
 
-1. Скачайте `LinkVault.zip`.
-2. Распакуйте архив в любую удобную папку.
-3. Дважды кликните по файлу `LinkVault.html`.
-4. Программа откроется в браузере по умолчанию.
+1. Download `LinkVault.zip`.
+2. Unpack the archive to any folder.
+3. Double-click `LinkVault.html`.
+4. LinkVault will open in your default browser.
 
-Важно: `.exe` файла нет. LinkVault - это самостоятельное HTML-приложение, поэтому запускать нужно именно `LinkVault.html`.
+There is no `.exe` file. LinkVault is a standalone HTML app, so the file you launch is `LinkVault.html`.
 
-## Что умеет программа
+## Features
 
-- Сохраняет ссылки, описания и скриншоты в удобной таблице.
-- Позволяет создавать отдельные страницы/категории.
-- Подсвечивает повторяющиеся ссылки.
-- Хранит данные локально в браузере через IndexedDB.
-- Умеет сохранять и загружать резервные копии в формате JSON.
-- Поддерживает мультиязычный интерфейс.
+- Save links, descriptions, and screenshots in a clean table.
+- Organize records into pages/categories.
+- Rename and delete pages.
+- Automatically highlight duplicate links.
+- Store data locally in your browser with IndexedDB.
+- Save and restore JSON backup files.
+- Use a multilingual interface.
 
-## Страницы и категории
+## Pages and Categories
 
-При первом запуске создается первая страница. В русском интерфейсе она называется `Главная`, в английском - `Home`, в других языках название тоже переводится.
+On first launch, LinkVault creates one default page. In English it is named `Home`; in Russian it is `Главная`; in other interface languages it is translated as well.
 
-- Чтобы создать новую страницу, нажмите кнопку `+` рядом со вкладками.
-- Чтобы переименовать страницу, кликните по названию вкладки, введите новое имя и нажмите `Enter` или кликните в другое место.
-- Чтобы переключиться на другую страницу, кликните по нужной вкладке.
-- Чтобы удалить страницу, нажмите `×` на вкладке.
+- To create a new page, click the `+` button next to the page tabs.
+- To rename a page, click the page name, type a new name, then press `Enter` or click somewhere else.
+- To switch pages, click the page tab you want.
+- To delete a page, click the `×` button on the tab.
 
-Если вы вручную переименовали стандартную страницу, она становится обычной пользовательской страницей и больше не переводится автоматически.
+If you manually rename the default page, it becomes a custom page name and is no longer translated automatically.
 
-## Как делать записи
+## Adding Records
 
-Каждая строка состоит из четырех колонок:
+Each row has four columns:
 
-- `№` - номер строки.
-- `Ссылка` - адрес сайта.
-- `Скриншот` - картинка/превью.
-- `Описание` - ваша заметка.
+- `№` - row number.
+- `Link` - the website address.
+- `Screenshot` - an optional image preview.
+- `Description` - your note about the link.
 
-Чтобы добавить запись:
+To add a record:
 
-1. Кликните в пустую ячейку в колонке `Ссылка`.
-2. Вставьте или напечатайте ссылку.
-3. При необходимости заполните колонку `Описание`.
-4. Когда последняя строка заполнена, новая пустая строка появится автоматически.
+1. Click an empty cell in the `Link` column.
+2. Paste or type a link.
+3. Add a note in the `Description` column if needed.
+4. When the last row has a link or description, LinkVault automatically adds a new empty row.
 
-Если вставить ссылку без `https://`, программа добавит его сама.
+If you paste a link without `https://`, LinkVault adds it automatically.
 
-## Как вставлять скриншоты
+## Adding Screenshots
 
-1. Сделайте скриншот на компьютере.
-   - В Windows удобно использовать `Win + Shift + S`.
-2. Вернитесь в LinkVault.
-3. Кликните ячейку `Скриншот` в нужной строке.
-4. Нажмите `Ctrl+V` или используйте правую кнопку мыши и команду вставки.
-5. Скриншот сохранится в строке.
+1. Take a screenshot on your computer.
+   - On Windows, you can use `Win + Shift + S`.
+2. Return to LinkVault.
+3. Click the `Screenshot` cell in the needed row.
+4. Press `Ctrl+V`, or right-click and choose paste.
+5. The screenshot is saved in that row.
 
-Двойной клик по скриншоту открывает его крупнее. Кнопка `✕` на изображении удаляет скриншот из строки.
+Double-click a screenshot to open it larger. Use the `✕` button on the image to remove it from the row.
 
-## Редактирование и удаление
+## Editing, Moving, and Deleting
 
-- Чтобы изменить ссылку или описание, кликните ячейку и отредактируйте текст.
-- Чтобы переместить строку, перетащите ее мышью.
-- Чтобы удалить строку, нажмите правой кнопкой мыши по номеру строки и выберите удаление.
-- Если одинаковая ссылка добавлена несколько раз, такие строки подсвечиваются автоматически.
+- To edit a link or description, click the cell and change the text.
+- To move a row, drag it to another position.
+- To delete a row, right-click the row number and choose `Delete row`.
+- If the same link is added more than once, duplicate rows are highlighted automatically.
 
-## Резервные копии
+## Backups
 
-Данные хранятся внутри браузера. Если очистить данные браузера, данные LinkVault могут исчезнуть.
+Your data is stored inside your browser. If browser data is cleared, LinkVault data can be lost.
 
-Регулярно нажимайте `Сохранить`, чтобы создать резервную копию `LinkVault_backup.json`. Для восстановления используйте кнопку `Загрузить`.
+Use the `Save` button regularly to create a backup file named `LinkVault_backup.json`. Use the `Load` button to restore data from a backup.
 
-## Файлы
+## Files
 
-- `LinkVault.html` - сама программа.
-- `readme.txt` - локальная справка, открывается кнопкой `О программе`.
-- `assets/screenshot.png` - скриншот для описания на GitHub.
-- `LinkVault.zip` - готовый архив для скачивания.
+- `LinkVault.html` - the app itself.
+- `readme.txt` - local help file opened by the `About` button.
+- `assets/screenshot.png` - screenshot shown in this GitHub README.
+- `LinkVault.zip` - ready-to-use download archive.
 
-Личные резервные копии вроде `LinkVault_backup.json` намеренно не публикуются и не входят в архив.
-
----
-
-## English
-
-LinkVault is a small browser app for saving useful links together with descriptions and screenshots. It works locally in your browser and does not require installation, a server, an account, or an `.exe` file.
-
-Download: [LinkVault.zip](https://github.com/Hyrican/MyLinks/raw/main/LinkVault.zip)
-
-To run it, unpack the archive and open `LinkVault.html` with a double click.
+Personal backup files such as `LinkVault_backup.json` are intentionally not published and are not included in the archive.
