@@ -1,0 +1,30 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build LinkVault.zip
+        run: |
+          set -euo pipefail
+          mkdir -p build/LinkVault
+          cp LinkVault.html readme.txt icon.png README.md LICENSE build/LinkVault/
+          cd build
+          zip -r LinkVault.zip LinkVault
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/LinkVault.zip
+          generate_release_notes: true

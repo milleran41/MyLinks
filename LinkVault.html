@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="description" content="LinkVault — save links, notes and screenshots in one local table.">
+    <title>LinkVault - Управление ссылками</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --danger: #dc2626;
+            --warning: #f59e0b;
+            --success: #10b981;
+            --info: #0ea5e9;
+            --bg: #f8fafc;
+            --border: #cbd5e1;
+            --text: #1e293b;
+            --text-muted: #94a3b8;
+            --cell-hover: #f1f5f9;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            margin: 0; padding: 20px;
+            background: var(--bg); color: var(--text);
+            height: 100vh; display: flex; flex-direction: column;
+        }
+
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 15px; flex-shrink: 0;
+        }
+        h1 {
+            margin: 0; font-size: 22px; font-weight: 700;
+            color: var(--primary); display: flex; align-items: center; gap: 10px;
+        }
+        .header-buttons { display: flex; gap: 8px; }
+        .language-select {
+            padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px;
+            background: white; color: var(--text); font-size: 13px; cursor: pointer;
+        }
+        .btn {
+            padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer;
+            font-size: 13px; font-weight: 500; transition: all 0.2s;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .btn-save { background: var(--success); color: white; }
+        .btn-save:hover { background: #059669; }
+        .btn-load { background: var(--primary); color: white; }
+        .btn-load:hover { background: var(--primary-hover); }
+        .btn-about { background: var(--info); color: white; }
+        .btn-about:hover { background: #0284c7; }
+
+        .tabs-container {
+            display: flex; align-items: center; gap: 6px;
+            margin-bottom: 15px; overflow-x: auto; padding-bottom: 8px;
+            flex-shrink: 0;
+        }
+        .tab {
+            padding: 7px 14px; background: white; border: 1px solid var(--border);
+            border-radius: 6px 6px 0 0; cursor: pointer; display: flex;
+            align-items: center; gap: 8px; font-size: 13px; transition: 0.2s;
+            color: #475569; white-space: nowrap; user-select: none;
+        }
+        .tab.active {
+            background: var(--primary); color: white; border-color: var(--primary); font-weight: 600;
+        }
+        .tab:hover:not(.active) { background: #eef2ff; }
+        .tab span[contenteditable="true"] {
+            cursor: text; min-width: 20px; display: inline-block; outline: none;
+        }
+        .tab.active span[contenteditable="true"]:focus {
+            background: rgba(255,255,255,0.2); border-radius: 3px;
+        }
+        .tab:not(.active) span[contenteditable="true"]:focus {
+            background: white; color: var(--text); border-radius: 3px; box-shadow: 0 0 0 2px var(--primary);
+        }
+        .tab-close {
+            font-size: 15px; line-height: 1; padding: 0 4px; border-radius: 50%;
+            cursor: pointer; opacity: 0.7;
+        }
+        .tab-close:hover { opacity: 1; background: rgba(0,0,0,0.15); }
+        .add-tab {
+            padding: 6px 10px; background: #e2e8f0; border: none; border-radius: 6px;
+            cursor: pointer; font-size: 16px; line-height: 1; color: #475569;
+        }
+        .add-tab:hover { background: #cbd5e1; }
+
+        .table-container {
+            width: 100%; flex: 1;
+            max-height: calc(100vh - 160px);
+            overflow-y: scroll !important;
+            overflow-x: hidden !important;
+            background: white; border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        .table-container::-webkit-scrollbar { width: 14px !important; }
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f5f9 !important; border-radius: 7px !important;
+        }
+        .table-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1 !important; border-radius: 7px !important;
+            border: 3px solid #f1f5f9 !important;
+        }
+        .table-container::-webkit-scrollbar-thumb:hover { background: #94a3b8 !important; }
+        .table-container { scrollbar-width: thin !important; scrollbar-color: #cbd5e1 #f1f5f9 !important; }
+
+        table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; }
+        th {
+            background: #f8fafc; padding: 10px 12px; text-align: left;
+            font-weight: 600; color: #475569; border-bottom: 2px solid var(--border);
+            border-right: 1px solid var(--border); font-size: 13px;
+            position: sticky; top: 0; z-index: 10;
+        }
+        th:last-child { border-right: none; }
+        td {
+            padding: 6px 10px; border-bottom: 1px solid #e2e8f0;
+            border-right: 1px solid #e2e8f0; vertical-align: middle; font-size: 13px;
+        }
+        td:last-child { border-right: none; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background: #f8fafc; }
+        tr.context-active { background: #dbeafe !important; }
+        
+        tr.draggable { cursor: grab; }
+        tr.draggable:active { cursor: grabbing; }
+        tr.dragging { opacity: 0.4; background: #e0e7ff !important; }
+        tr.drag-over { border-top: 3px solid var(--primary) !important; }
+        tr.drag-over td { background: #eef2ff !important; }
+
+        tr.duplicate { background: #fef3c7 !important; }
+        tr.duplicate:hover { background: #fde68a !important; }
+        tr.duplicate td { border-left: 3px solid var(--warning); }
+
+        .col-num { width: 50px; text-align: center; color: var(--text-muted); font-weight: 600; cursor: pointer; }
+        .col-num:hover { color: var(--danger); background: #fef2f2; }
+        .col-link { width: 28%; min-width: 180px; }
+        .col-img { width: 150px; text-align: center; }
+        .col-desc { width: 42%; min-width: 200px; }
+
+        td[contenteditable="true"] {
+            padding: 5px 8px; border-radius: 4px; outline: none;
+            color: var(--text); cursor: text; transition: background 0.15s;
+        }
+        td[contenteditable="true"]:hover { background: var(--cell-hover); }
+        td[contenteditable="true"]:focus { background: white; box-shadow: 0 0 0 2px var(--primary); }
+
+        .link-cell a {
+            color: var(--primary); text-decoration: none; word-break: break-all;
+            display: block; pointer-events: auto;
+        }
+        .link-cell a:hover { text-decoration: underline; }
+
+        .img-wrapper { position: relative; display: inline-block; max-width: 100%; }
+        .img-wrapper img {
+            max-width: 130px; max-height: 70px; border-radius: 4px;
+            cursor: pointer; display: block; margin: 0 auto; border: 1px solid var(--border);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .img-wrapper:hover img { transform: scale(1.03); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+        .img-delete {
+            position: absolute; top: -7px; right: -7px; background: var(--danger);
+            color: white; border: none; border-radius: 50%; width: 18px; height: 18px;
+            font-size: 11px; cursor: pointer; display: none; align-items: center;
+            justify-content: center; line-height: 1; z-index: 20; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .img-wrapper:hover .img-delete { display: flex; }
+
+        .truncate { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: help; }
+        .tooltip-text {
+            visibility: hidden; background: #0f172a; color: #fff; text-align: left;
+            border-radius: 6px; padding: 10px 12px; position: fixed; z-index: 9999;
+            width: max-content; max-width: 450px; max-height: 280px;
+            overflow-y: auto !important; white-space: normal; word-wrap: break-word;
+            opacity: 0; transition: opacity 0.15s; pointer-events: none;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25); font-size: 13px; line-height: 1.4;
+            scrollbar-width: thin !important;
+            scrollbar-color: rgba(255,255,255,0.4) rgba(255,255,255,0.1) !important;
+        }
+        .tooltip-text::-webkit-scrollbar { width: 8px !important; }
+        .tooltip-text::-webkit-scrollbar-track { background: rgba(255,255,255,0.1) !important; border-radius: 4px !important; }
+        .tooltip-text::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.4) !important; border-radius: 4px !important; }
+        .tooltip-text::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.7) !important; }
+        
+        .truncate:hover .tooltip-text { visibility: visible; opacity: 1; }
+
+        .placeholder { color: var(--text-muted); font-style: italic; pointer-events: none; font-size: 12px; }
+
+        #contextMenu {
+            display: none; position: fixed; background: white; border: 1px solid var(--border);
+            border-radius: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            z-index: 10000; overflow: hidden; min-width: 160px;
+        }
+        #contextMenu button {
+            display: block; width: 100%; padding: 9px 14px; text-align: left;
+            background: none; border: none; cursor: pointer; font-size: 13px; color: var(--danger);
+        }
+        #contextMenu button:hover { background: #fef2f2; }
+
+        #imageModal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 20000; justify-content: center;
+            align-items: center; cursor: zoom-out;
+        }
+        #imageModal img { max-width: 90%; max-height: 90%; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+
+        #notification {
+            position: fixed; top: 20px; right: 20px; padding: 12px 20px;
+            background: var(--success); color: white; border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 30000;
+            opacity: 0; transform: translateY(-20px); transition: all 0.3s;
+            pointer-events: none;
+        }
+        #notification.show { opacity: 1; transform: translateY(0); }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🔗 LinkVault</h1>
+        <div class="header-buttons">
+            <select id="languageSelect" class="language-select" onchange="setLanguage(this.value)" title="Language"></select>
+            <button class="btn btn-save" onclick="saveToFile()">💾 <span data-i18n="save">Сохранить</span></button>
+            <button class="btn btn-load" onclick="loadFromFile()">📂 <span data-i18n="load">Загрузить</span></button>
+            <button class="btn btn-about" onclick="openAbout()">ℹ️ <span data-i18n="about">О программе</span></button>
+        </div>
+    </div>
+    
+    <div class="tabs-container" id="tabsContainer">
+        <button class="add-tab" onclick="addNewPage()" title="Добавить страницу" data-i18n-title="addPageTitle">+</button>
+    </div>
+
+    <div class="table-container">
+        <table id="mainTable">
+            <thead>
+                <tr>
+                    <th class="col-num">№</th>
+                    <th class="col-link" data-i18n="columnLink">Ссылка</th>
+                    <th class="col-img" data-i18n="columnImage">Скриншот</th>
+                    <th class="col-desc" data-i18n="columnDescription">Описание</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+
+    <div id="contextMenu">
+        <button onclick="deleteContextRow()" data-i18n="deleteRow">Удалить строку</button>
+    </div>
+
+    <div id="imageModal" onclick="this.style.display='none'">
+        <img id="modalImage" src="" alt="Screenshot">
+    </div>
+
+    <div id="notification"></div>
+
+    <script>
+        const DB_NAME = 'LinkVaultDB';
+        const DB_VERSION = 1;
+        let db;
+        let fileHandle = null;
+        const LANG_KEY = 'LinkVaultLanguage';
+        const translations = {
+            ru: { appTitle: 'LinkVault - Управление ссылками', save: 'Сохранить', load: 'Загрузить', about: 'О программе', addPageTitle: 'Добавить страницу', columnLink: 'Ссылка', columnImage: 'Скриншот', columnDescription: 'Описание', deleteRow: 'Удалить строку', defaultPageName: 'Главная', readmeOpenError: '⚠️ Не удалось открыть readme.txt. Убедитесь, что файл лежит рядом с LinkVault.html', dataSaved: '✅ Данные сохранены в файл!', fileDownloaded: '✅ Файл скачан! Переместите его в папку MyLinks', saveError: '❌ Ошибка сохранения: ', loadError: '❌ Ошибка загрузки: ', invalidFileFormat: 'Неверный формат файла', importConfirm: 'Загрузить данные из файла? Текущие данные будут заменены.', dataLoaded: '✅ Данные загружены!', importError: '❌ Ошибка импорта: ', linkPlaceholder: 'Вставьте ссылку...', imagePlaceholder: 'Ctrl+V или ПКМ → Вставить', descPlaceholder: 'Добавьте описание...', newPagePrompt: 'Название страницы:', newPageDefault: 'Новая', cannotDeleteOnlyPage: 'Нельзя удалить единственную страницу.', deletePageConfirm: 'Удалить страницу и все данные?', deleteRowConfirm: 'Удалить строку? Все данные будут удалены безвозвратно.' },
+            en: { appTitle: 'LinkVault - Link Manager', save: 'Save', load: 'Load', about: 'About', addPageTitle: 'Add page', columnLink: 'Link', columnImage: 'Screenshot', columnDescription: 'Description', deleteRow: 'Delete row', defaultPageName: 'Home', readmeOpenError: '⚠️ Could not open readme.txt. Make sure it is next to LinkVault.html', dataSaved: '✅ Data saved to file!', fileDownloaded: '✅ File downloaded! Move it to the MyLinks folder', saveError: '❌ Save error: ', loadError: '❌ Load error: ', invalidFileFormat: 'Invalid file format', importConfirm: 'Load data from file? Current data will be replaced.', dataLoaded: '✅ Data loaded!', importError: '❌ Import error: ', linkPlaceholder: 'Paste a link...', imagePlaceholder: 'Ctrl+V or right-click → Paste', descPlaceholder: 'Add a description...', newPagePrompt: 'Page name:', newPageDefault: 'New', cannotDeleteOnlyPage: 'You cannot delete the only page.', deletePageConfirm: 'Delete the page and all data?', deleteRowConfirm: 'Delete row? All data will be permanently deleted.' },
+            zh: { appTitle: 'LinkVault - 链接管理', save: '保存', load: '加载', about: '关于', addPageTitle: '添加页面', columnLink: '链接', columnImage: '截图', columnDescription: '描述', deleteRow: '删除行', defaultPageName: '主页', readmeOpenError: '⚠️ 无法打开 readme.txt。请确认它与 LinkVault.html 位于同一文件夹', dataSaved: '✅ 数据已保存到文件！', fileDownloaded: '✅ 文件已下载！请将其移动到 MyLinks 文件夹', saveError: '❌ 保存错误：', loadError: '❌ 加载错误：', invalidFileFormat: '文件格式无效', importConfirm: '从文件加载数据？当前数据将被替换。', dataLoaded: '✅ 数据已加载！', importError: '❌ 导入错误：', linkPlaceholder: '粘贴链接...', imagePlaceholder: 'Ctrl+V 或右键 → 粘贴', descPlaceholder: '添加描述...', newPagePrompt: '页面名称：', newPageDefault: '新建', cannotDeleteOnlyPage: '不能删除唯一的页面。', deletePageConfirm: '删除页面和所有数据？', deleteRowConfirm: '删除行？所有数据将被永久删除。' },
+            hi: { appTitle: 'LinkVault - लिंक प्रबंधन', save: 'सहेजें', load: 'लोड करें', about: 'परिचय', addPageTitle: 'पेज जोड़ें', columnLink: 'लिंक', columnImage: 'स्क्रीनशॉट', columnDescription: 'विवरण', deleteRow: 'पंक्ति हटाएं', defaultPageName: 'मुख्य', readmeOpenError: '⚠️ readme.txt नहीं खुल सका। सुनिश्चित करें कि फ़ाइल LinkVault.html के पास है', dataSaved: '✅ डेटा फ़ाइल में सहेजा गया!', fileDownloaded: '✅ फ़ाइल डाउनलोड हो गई! इसे MyLinks फ़ोल्डर में रखें', saveError: '❌ सहेजने में त्रुटि: ', loadError: '❌ लोड त्रुटि: ', invalidFileFormat: 'अमान्य फ़ाइल प्रारूप', importConfirm: 'फ़ाइल से डेटा लोड करें? मौजूदा डेटा बदल दिया जाएगा।', dataLoaded: '✅ डेटा लोड हो गया!', importError: '❌ आयात त्रुटि: ', linkPlaceholder: 'लिंक पेस्ट करें...', imagePlaceholder: 'Ctrl+V या राइट-क्लिक → पेस्ट', descPlaceholder: 'विवरण जोड़ें...', newPagePrompt: 'पेज का नाम:', newPageDefault: 'नया', cannotDeleteOnlyPage: 'एकमात्र पेज हटाया नहीं जा सकता।', deletePageConfirm: 'पेज और सारा डेटा हटाएं?', deleteRowConfirm: 'पंक्ति हटाएं? सारा डेटा स्थायी रूप से हट जाएगा।' },
+            es: { appTitle: 'LinkVault - Gestor de enlaces', save: 'Guardar', load: 'Cargar', about: 'Acerca de', addPageTitle: 'Agregar página', columnLink: 'Enlace', columnImage: 'Captura', columnDescription: 'Descripción', deleteRow: 'Eliminar fila', defaultPageName: 'Inicio', readmeOpenError: '⚠️ No se pudo abrir readme.txt. Asegúrate de que esté junto a LinkVault.html', dataSaved: '✅ Datos guardados en el archivo.', fileDownloaded: '✅ Archivo descargado. Muévelo a la carpeta MyLinks', saveError: '❌ Error al guardar: ', loadError: '❌ Error al cargar: ', invalidFileFormat: 'Formato de archivo no válido', importConfirm: '¿Cargar datos desde el archivo? Los datos actuales se reemplazarán.', dataLoaded: '✅ Datos cargados.', importError: '❌ Error de importación: ', linkPlaceholder: 'Pega un enlace...', imagePlaceholder: 'Ctrl+V o clic derecho → Pegar', descPlaceholder: 'Agrega una descripción...', newPagePrompt: 'Nombre de la página:', newPageDefault: 'Nueva', cannotDeleteOnlyPage: 'No puedes eliminar la única página.', deletePageConfirm: '¿Eliminar la página y todos los datos?', deleteRowConfirm: '¿Eliminar fila? Todos los datos se borrarán permanentemente.' },
+            ar: { appTitle: 'LinkVault - إدارة الروابط', save: 'حفظ', load: 'تحميل', about: 'حول البرنامج', addPageTitle: 'إضافة صفحة', columnLink: 'الرابط', columnImage: 'لقطة شاشة', columnDescription: 'الوصف', deleteRow: 'حذف الصف', defaultPageName: 'الرئيسية', readmeOpenError: '⚠️ تعذر فتح readme.txt. تأكد من وجوده بجانب LinkVault.html', dataSaved: '✅ تم حفظ البيانات في الملف!', fileDownloaded: '✅ تم تنزيل الملف! انقله إلى مجلد MyLinks', saveError: '❌ خطأ في الحفظ: ', loadError: '❌ خطأ في التحميل: ', invalidFileFormat: 'تنسيق الملف غير صالح', importConfirm: 'تحميل البيانات من الملف؟ سيتم استبدال البيانات الحالية.', dataLoaded: '✅ تم تحميل البيانات!', importError: '❌ خطأ في الاستيراد: ', linkPlaceholder: 'الصق رابطا...', imagePlaceholder: 'Ctrl+V أو زر الفأرة الأيمن → لصق', descPlaceholder: 'أضف وصفا...', newPagePrompt: 'اسم الصفحة:', newPageDefault: 'جديدة', cannotDeleteOnlyPage: 'لا يمكن حذف الصفحة الوحيدة.', deletePageConfirm: 'حذف الصفحة وكل البيانات؟', deleteRowConfirm: 'حذف الصف؟ سيتم حذف كل البيانات نهائيا.' },
+            fr: { appTitle: 'LinkVault - Gestion des liens', save: 'Enregistrer', load: 'Charger', about: 'À propos', addPageTitle: 'Ajouter une page', columnLink: 'Lien', columnImage: 'Capture', columnDescription: 'Description', deleteRow: 'Supprimer la ligne', defaultPageName: 'Accueil', readmeOpenError: '⚠️ Impossible d’ouvrir readme.txt. Vérifiez qu’il se trouve près de LinkVault.html', dataSaved: '✅ Données enregistrées dans le fichier.', fileDownloaded: '✅ Fichier téléchargé. Déplacez-le dans le dossier MyLinks', saveError: '❌ Erreur d’enregistrement : ', loadError: '❌ Erreur de chargement : ', invalidFileFormat: 'Format de fichier invalide', importConfirm: 'Charger les données du fichier ? Les données actuelles seront remplacées.', dataLoaded: '✅ Données chargées.', importError: '❌ Erreur d’importation : ', linkPlaceholder: 'Collez un lien...', imagePlaceholder: 'Ctrl+V ou clic droit → Coller', descPlaceholder: 'Ajoutez une description...', newPagePrompt: 'Nom de la page :', newPageDefault: 'Nouvelle', cannotDeleteOnlyPage: 'Impossible de supprimer la seule page.', deletePageConfirm: 'Supprimer la page et toutes les données ?', deleteRowConfirm: 'Supprimer la ligne ? Toutes les données seront définitivement supprimées.' },
+            bn: { appTitle: 'LinkVault - লিংক ব্যবস্থাপনা', save: 'সংরক্ষণ', load: 'লোড', about: 'সম্পর্কে', addPageTitle: 'পৃষ্ঠা যোগ করুন', columnLink: 'লিংক', columnImage: 'স্ক্রিনশট', columnDescription: 'বিবরণ', deleteRow: 'সারি মুছুন', defaultPageName: 'হোম', readmeOpenError: '⚠️ readme.txt খোলা যায়নি। এটি LinkVault.html-এর পাশে আছে কি না দেখুন', dataSaved: '✅ ডেটা ফাইলে সংরক্ষিত হয়েছে!', fileDownloaded: '✅ ফাইল ডাউনলোড হয়েছে! এটি MyLinks ফোল্ডারে সরান', saveError: '❌ সংরক্ষণ ত্রুটি: ', loadError: '❌ লোড ত্রুটি: ', invalidFileFormat: 'ভুল ফাইল ফরম্যাট', importConfirm: 'ফাইল থেকে ডেটা লোড করবেন? বর্তমান ডেটা বদলে যাবে।', dataLoaded: '✅ ডেটা লোড হয়েছে!', importError: '❌ ইমপোর্ট ত্রুটি: ', linkPlaceholder: 'লিংক পেস্ট করুন...', imagePlaceholder: 'Ctrl+V বা রাইট-ক্লিক → পেস্ট', descPlaceholder: 'বিবরণ যোগ করুন...', newPagePrompt: 'পৃষ্ঠার নাম:', newPageDefault: 'নতুন', cannotDeleteOnlyPage: 'একমাত্র পৃষ্ঠা মুছতে পারবেন না।', deletePageConfirm: 'পৃষ্ঠা ও সব ডেটা মুছবেন?', deleteRowConfirm: 'সারি মুছবেন? সব ডেটা স্থায়ীভাবে মুছে যাবে।' },
+            pt: { appTitle: 'LinkVault - Gerenciador de links', save: 'Salvar', load: 'Carregar', about: 'Sobre', addPageTitle: 'Adicionar página', columnLink: 'Link', columnImage: 'Captura', columnDescription: 'Descrição', deleteRow: 'Excluir linha', defaultPageName: 'Início', readmeOpenError: '⚠️ Não foi possível abrir readme.txt. Verifique se ele está ao lado de LinkVault.html', dataSaved: '✅ Dados salvos no arquivo!', fileDownloaded: '✅ Arquivo baixado! Mova-o para a pasta MyLinks', saveError: '❌ Erro ao salvar: ', loadError: '❌ Erro ao carregar: ', invalidFileFormat: 'Formato de arquivo inválido', importConfirm: 'Carregar dados do arquivo? Os dados atuais serão substituídos.', dataLoaded: '✅ Dados carregados!', importError: '❌ Erro de importação: ', linkPlaceholder: 'Cole um link...', imagePlaceholder: 'Ctrl+V ou botão direito → Colar', descPlaceholder: 'Adicione uma descrição...', newPagePrompt: 'Nome da página:', newPageDefault: 'Nova', cannotDeleteOnlyPage: 'Não é possível excluir a única página.', deletePageConfirm: 'Excluir a página e todos os dados?', deleteRowConfirm: 'Excluir linha? Todos os dados serão removidos permanentemente.' },
+            id: { appTitle: 'LinkVault - Pengelola tautan', save: 'Simpan', load: 'Muat', about: 'Tentang', addPageTitle: 'Tambah halaman', columnLink: 'Tautan', columnImage: 'Tangkapan layar', columnDescription: 'Deskripsi', deleteRow: 'Hapus baris', defaultPageName: 'Beranda', readmeOpenError: '⚠️ Tidak dapat membuka readme.txt. Pastikan file ada di samping LinkVault.html', dataSaved: '✅ Data disimpan ke file!', fileDownloaded: '✅ File diunduh! Pindahkan ke folder MyLinks', saveError: '❌ Kesalahan menyimpan: ', loadError: '❌ Kesalahan memuat: ', invalidFileFormat: 'Format file tidak valid', importConfirm: 'Muat data dari file? Data saat ini akan diganti.', dataLoaded: '✅ Data dimuat!', importError: '❌ Kesalahan impor: ', linkPlaceholder: 'Tempel tautan...', imagePlaceholder: 'Ctrl+V atau klik kanan → Tempel', descPlaceholder: 'Tambahkan deskripsi...', newPagePrompt: 'Nama halaman:', newPageDefault: 'Baru', cannotDeleteOnlyPage: 'Tidak dapat menghapus satu-satunya halaman.', deletePageConfirm: 'Hapus halaman dan semua data?', deleteRowConfirm: 'Hapus baris? Semua data akan dihapus permanen.' },
+            ur: { appTitle: 'LinkVault - لنک مینیجر', save: 'محفوظ کریں', load: 'لوڈ کریں', about: 'تعارف', addPageTitle: 'صفحہ شامل کریں', columnLink: 'لنک', columnImage: 'اسکرین شاٹ', columnDescription: 'تفصیل', deleteRow: 'قطار حذف کریں', defaultPageName: 'مرکزی', readmeOpenError: '⚠️ readme.txt نہیں کھل سکا۔ یقینی بنائیں کہ یہ LinkVault.html کے ساتھ ہے', dataSaved: '✅ ڈیٹا فائل میں محفوظ ہو گیا!', fileDownloaded: '✅ فائل ڈاؤن لوڈ ہو گئی! اسے MyLinks فولڈر میں منتقل کریں', saveError: '❌ محفوظ کرنے کی خرابی: ', loadError: '❌ لوڈ کرنے کی خرابی: ', invalidFileFormat: 'فائل فارمیٹ درست نہیں', importConfirm: 'فائل سے ڈیٹا لوڈ کریں؟ موجودہ ڈیٹا بدل دیا جائے گا۔', dataLoaded: '✅ ڈیٹا لوڈ ہو گیا!', importError: '❌ امپورٹ خرابی: ', linkPlaceholder: 'لنک پیسٹ کریں...', imagePlaceholder: 'Ctrl+V یا دائیں کلک → پیسٹ', descPlaceholder: 'تفصیل شامل کریں...', newPagePrompt: 'صفحے کا نام:', newPageDefault: 'نیا', cannotDeleteOnlyPage: 'واحد صفحہ حذف نہیں کیا جا سکتا۔', deletePageConfirm: 'صفحہ اور تمام ڈیٹا حذف کریں؟', deleteRowConfirm: 'قطار حذف کریں؟ تمام ڈیٹا مستقل طور پر حذف ہو جائے گا۔' },
+            de: { appTitle: 'LinkVault - Linkverwaltung', save: 'Speichern', load: 'Laden', about: 'Über', addPageTitle: 'Seite hinzufügen', columnLink: 'Link', columnImage: 'Screenshot', columnDescription: 'Beschreibung', deleteRow: 'Zeile löschen', defaultPageName: 'Start', readmeOpenError: '⚠️ readme.txt konnte nicht geöffnet werden. Stellen Sie sicher, dass sie neben LinkVault.html liegt', dataSaved: '✅ Daten in Datei gespeichert!', fileDownloaded: '✅ Datei heruntergeladen! Verschieben Sie sie in den Ordner MyLinks', saveError: '❌ Fehler beim Speichern: ', loadError: '❌ Fehler beim Laden: ', invalidFileFormat: 'Ungültiges Dateiformat', importConfirm: 'Daten aus Datei laden? Aktuelle Daten werden ersetzt.', dataLoaded: '✅ Daten geladen!', importError: '❌ Importfehler: ', linkPlaceholder: 'Link einfügen...', imagePlaceholder: 'Strg+V oder Rechtsklick → Einfügen', descPlaceholder: 'Beschreibung hinzufügen...', newPagePrompt: 'Seitenname:', newPageDefault: 'Neu', cannotDeleteOnlyPage: 'Die einzige Seite kann nicht gelöscht werden.', deletePageConfirm: 'Seite und alle Daten löschen?', deleteRowConfirm: 'Zeile löschen? Alle Daten werden dauerhaft gelöscht.' },
+            ja: { appTitle: 'LinkVault - リンク管理', save: '保存', load: '読み込み', about: 'このアプリについて', addPageTitle: 'ページを追加', columnLink: 'リンク', columnImage: 'スクリーンショット', columnDescription: '説明', deleteRow: '行を削除', defaultPageName: 'ホーム', readmeOpenError: '⚠️ readme.txt を開けません。LinkVault.html の隣にあることを確認してください', dataSaved: '✅ データをファイルに保存しました！', fileDownloaded: '✅ ファイルをダウンロードしました！MyLinks フォルダーへ移動してください', saveError: '❌ 保存エラー: ', loadError: '❌ 読み込みエラー: ', invalidFileFormat: 'ファイル形式が無効です', importConfirm: 'ファイルからデータを読み込みますか？現在のデータは置き換えられます。', dataLoaded: '✅ データを読み込みました！', importError: '❌ インポートエラー: ', linkPlaceholder: 'リンクを貼り付け...', imagePlaceholder: 'Ctrl+V または右クリック → 貼り付け', descPlaceholder: '説明を追加...', newPagePrompt: 'ページ名:', newPageDefault: '新規', cannotDeleteOnlyPage: '唯一のページは削除できません。', deletePageConfirm: 'ページとすべてのデータを削除しますか？', deleteRowConfirm: '行を削除しますか？すべてのデータが完全に削除されます。' },
+            sw: { appTitle: 'LinkVault - Kidhibiti viungo', save: 'Hifadhi', load: 'Pakia', about: 'Kuhusu', addPageTitle: 'Ongeza ukurasa', columnLink: 'Kiungo', columnImage: 'Picha ya skrini', columnDescription: 'Maelezo', deleteRow: 'Futa safu', defaultPageName: 'Mwanzo', readmeOpenError: '⚠️ Imeshindikana kufungua readme.txt. Hakikisha ipo karibu na LinkVault.html', dataSaved: '✅ Data imehifadhiwa kwenye faili!', fileDownloaded: '✅ Faili imepakuliwa! Ihamishe kwenye folda ya MyLinks', saveError: '❌ Hitilafu ya kuhifadhi: ', loadError: '❌ Hitilafu ya kupakia: ', invalidFileFormat: 'Muundo wa faili si sahihi', importConfirm: 'Pakia data kutoka faili? Data ya sasa itabadilishwa.', dataLoaded: '✅ Data imepakiwa!', importError: '❌ Hitilafu ya kuleta: ', linkPlaceholder: 'Bandika kiungo...', imagePlaceholder: 'Ctrl+V au bofya kulia → Bandika', descPlaceholder: 'Ongeza maelezo...', newPagePrompt: 'Jina la ukurasa:', newPageDefault: 'Mpya', cannotDeleteOnlyPage: 'Huwezi kufuta ukurasa pekee.', deletePageConfirm: 'Futa ukurasa na data yote?', deleteRowConfirm: 'Futa safu? Data yote itafutwa kabisa.' },
+            tr: { appTitle: 'LinkVault - Bağlantı yöneticisi', save: 'Kaydet', load: 'Yükle', about: 'Hakkında', addPageTitle: 'Sayfa ekle', columnLink: 'Bağlantı', columnImage: 'Ekran görüntüsü', columnDescription: 'Açıklama', deleteRow: 'Satırı sil', defaultPageName: 'Ana sayfa', readmeOpenError: '⚠️ readme.txt açılamadı. LinkVault.html ile aynı klasörde olduğundan emin olun', dataSaved: '✅ Veriler dosyaya kaydedildi!', fileDownloaded: '✅ Dosya indirildi! MyLinks klasörüne taşıyın', saveError: '❌ Kaydetme hatası: ', loadError: '❌ Yükleme hatası: ', invalidFileFormat: 'Geçersiz dosya biçimi', importConfirm: 'Dosyadan veri yüklensin mi? Mevcut veriler değiştirilecek.', dataLoaded: '✅ Veriler yüklendi!', importError: '❌ İçe aktarma hatası: ', linkPlaceholder: 'Bağlantı yapıştır...', imagePlaceholder: 'Ctrl+V veya sağ tık → Yapıştır', descPlaceholder: 'Açıklama ekle...', newPagePrompt: 'Sayfa adı:', newPageDefault: 'Yeni', cannotDeleteOnlyPage: 'Tek sayfa silinemez.', deletePageConfirm: 'Sayfa ve tüm veriler silinsin mi?', deleteRowConfirm: 'Satır silinsin mi? Tüm veriler kalıcı olarak silinecek.' },
+            ko: { appTitle: 'LinkVault - 링크 관리자', save: '저장', load: '불러오기', about: '정보', addPageTitle: '페이지 추가', columnLink: '링크', columnImage: '스크린샷', columnDescription: '설명', deleteRow: '행 삭제', defaultPageName: '홈', readmeOpenError: '⚠️ readme.txt를 열 수 없습니다. LinkVault.html 옆에 있는지 확인하세요', dataSaved: '✅ 데이터가 파일에 저장되었습니다!', fileDownloaded: '✅ 파일이 다운로드되었습니다! MyLinks 폴더로 옮기세요', saveError: '❌ 저장 오류: ', loadError: '❌ 불러오기 오류: ', invalidFileFormat: '잘못된 파일 형식', importConfirm: '파일에서 데이터를 불러올까요? 현재 데이터가 교체됩니다.', dataLoaded: '✅ 데이터가 불러와졌습니다!', importError: '❌ 가져오기 오류: ', linkPlaceholder: '링크 붙여넣기...', imagePlaceholder: 'Ctrl+V 또는 오른쪽 클릭 → 붙여넣기', descPlaceholder: '설명 추가...', newPagePrompt: '페이지 이름:', newPageDefault: '새로 만들기', cannotDeleteOnlyPage: '유일한 페이지는 삭제할 수 없습니다.', deletePageConfirm: '페이지와 모든 데이터를 삭제할까요?', deleteRowConfirm: '행을 삭제할까요? 모든 데이터가 영구적으로 삭제됩니다.' },
+            it: { appTitle: 'LinkVault - Gestione link', save: 'Salva', load: 'Carica', about: 'Informazioni', addPageTitle: 'Aggiungi pagina', columnLink: 'Link', columnImage: 'Screenshot', columnDescription: 'Descrizione', deleteRow: 'Elimina riga', defaultPageName: 'Home', readmeOpenError: '⚠️ Impossibile aprire readme.txt. Verifica che sia accanto a LinkVault.html', dataSaved: '✅ Dati salvati nel file!', fileDownloaded: '✅ File scaricato! Spostalo nella cartella MyLinks', saveError: '❌ Errore di salvataggio: ', loadError: '❌ Errore di caricamento: ', invalidFileFormat: 'Formato file non valido', importConfirm: 'Caricare i dati dal file? I dati attuali saranno sostituiti.', dataLoaded: '✅ Dati caricati!', importError: '❌ Errore di importazione: ', linkPlaceholder: 'Incolla un link...', imagePlaceholder: 'Ctrl+V o clic destro → Incolla', descPlaceholder: 'Aggiungi una descrizione...', newPagePrompt: 'Nome pagina:', newPageDefault: 'Nuova', cannotDeleteOnlyPage: 'Non puoi eliminare l’unica pagina.', deletePageConfirm: 'Eliminare la pagina e tutti i dati?', deleteRowConfirm: 'Eliminare la riga? Tutti i dati saranno eliminati definitivamente.' },
+            vi: { appTitle: 'LinkVault - Quản lý liên kết', save: 'Lưu', load: 'Tải', about: 'Giới thiệu', addPageTitle: 'Thêm trang', columnLink: 'Liên kết', columnImage: 'Ảnh chụp', columnDescription: 'Mô tả', deleteRow: 'Xóa hàng', defaultPageName: 'Trang chủ', readmeOpenError: '⚠️ Không thể mở readme.txt. Hãy chắc chắn tệp nằm cạnh LinkVault.html', dataSaved: '✅ Dữ liệu đã được lưu vào tệp!', fileDownloaded: '✅ Tệp đã tải xuống! Hãy chuyển vào thư mục MyLinks', saveError: '❌ Lỗi lưu: ', loadError: '❌ Lỗi tải: ', invalidFileFormat: 'Định dạng tệp không hợp lệ', importConfirm: 'Tải dữ liệu từ tệp? Dữ liệu hiện tại sẽ bị thay thế.', dataLoaded: '✅ Dữ liệu đã được tải!', importError: '❌ Lỗi nhập: ', linkPlaceholder: 'Dán liên kết...', imagePlaceholder: 'Ctrl+V hoặc nhấp phải → Dán', descPlaceholder: 'Thêm mô tả...', newPagePrompt: 'Tên trang:', newPageDefault: 'Mới', cannotDeleteOnlyPage: 'Không thể xóa trang duy nhất.', deletePageConfirm: 'Xóa trang và toàn bộ dữ liệu?', deleteRowConfirm: 'Xóa hàng? Toàn bộ dữ liệu sẽ bị xóa vĩnh viễn.' },
+            fa: { appTitle: 'LinkVault - مدیریت لینک‌ها', save: 'ذخیره', load: 'بارگذاری', about: 'درباره', addPageTitle: 'افزودن صفحه', columnLink: 'لینک', columnImage: 'اسکرین‌شات', columnDescription: 'توضیح', deleteRow: 'حذف ردیف', defaultPageName: 'خانه', readmeOpenError: '⚠️ readme.txt باز نشد. مطمئن شوید کنار LinkVault.html قرار دارد', dataSaved: '✅ داده‌ها در فایل ذخیره شدند!', fileDownloaded: '✅ فایل دانلود شد! آن را به پوشه MyLinks منتقل کنید', saveError: '❌ خطای ذخیره: ', loadError: '❌ خطای بارگذاری: ', invalidFileFormat: 'فرمت فایل نامعتبر است', importConfirm: 'داده‌ها از فایل بارگذاری شوند؟ داده‌های فعلی جایگزین می‌شوند.', dataLoaded: '✅ داده‌ها بارگذاری شدند!', importError: '❌ خطای وارد کردن: ', linkPlaceholder: 'لینک را بچسبانید...', imagePlaceholder: 'Ctrl+V یا راست‌کلیک → چسباندن', descPlaceholder: 'توضیح اضافه کنید...', newPagePrompt: 'نام صفحه:', newPageDefault: 'جدید', cannotDeleteOnlyPage: 'تنها صفحه را نمی‌توان حذف کرد.', deletePageConfirm: 'صفحه و همه داده‌ها حذف شوند؟', deleteRowConfirm: 'ردیف حذف شود؟ همه داده‌ها برای همیشه حذف می‌شوند.' },
+            pl: { appTitle: 'LinkVault - Menedżer linków', save: 'Zapisz', load: 'Wczytaj', about: 'O programie', addPageTitle: 'Dodaj stronę', columnLink: 'Link', columnImage: 'Zrzut ekranu', columnDescription: 'Opis', deleteRow: 'Usuń wiersz', defaultPageName: 'Główna', readmeOpenError: '⚠️ Nie udało się otworzyć readme.txt. Upewnij się, że jest obok LinkVault.html', dataSaved: '✅ Dane zapisane do pliku!', fileDownloaded: '✅ Plik pobrany! Przenieś go do folderu MyLinks', saveError: '❌ Błąd zapisu: ', loadError: '❌ Błąd ładowania: ', invalidFileFormat: 'Nieprawidłowy format pliku', importConfirm: 'Wczytać dane z pliku? Obecne dane zostaną zastąpione.', dataLoaded: '✅ Dane wczytane!', importError: '❌ Błąd importu: ', linkPlaceholder: 'Wklej link...', imagePlaceholder: 'Ctrl+V lub prawy klik → Wklej', descPlaceholder: 'Dodaj opis...', newPagePrompt: 'Nazwa strony:', newPageDefault: 'Nowa', cannotDeleteOnlyPage: 'Nie można usunąć jedynej strony.', deletePageConfirm: 'Usunąć stronę i wszystkie dane?', deleteRowConfirm: 'Usunąć wiersz? Wszystkie dane zostaną trwale usunięte.' },
+            uk: { appTitle: 'LinkVault - Керування посиланнями', save: 'Зберегти', load: 'Завантажити', about: 'Про програму', addPageTitle: 'Додати сторінку', columnLink: 'Посилання', columnImage: 'Скриншот', columnDescription: 'Опис', deleteRow: 'Видалити рядок', defaultPageName: 'Головна', readmeOpenError: '⚠️ Не вдалося відкрити readme.txt. Переконайтеся, що файл лежить поруч із LinkVault.html', dataSaved: '✅ Дані збережено у файл!', fileDownloaded: '✅ Файл завантажено! Перемістіть його до папки MyLinks', saveError: '❌ Помилка збереження: ', loadError: '❌ Помилка завантаження: ', invalidFileFormat: 'Неправильний формат файлу', importConfirm: 'Завантажити дані з файлу? Поточні дані буде замінено.', dataLoaded: '✅ Дані завантажено!', importError: '❌ Помилка імпорту: ', linkPlaceholder: 'Вставте посилання...', imagePlaceholder: 'Ctrl+V або ПКМ → Вставити', descPlaceholder: 'Додайте опис...', newPagePrompt: 'Назва сторінки:', newPageDefault: 'Нова', cannotDeleteOnlyPage: 'Не можна видалити єдину сторінку.', deletePageConfirm: 'Видалити сторінку та всі дані?', deleteRowConfirm: 'Видалити рядок? Усі дані буде видалено назавжди.' },
+            nl: { appTitle: 'LinkVault - Linkbeheer', save: 'Opslaan', load: 'Laden', about: 'Over', addPageTitle: 'Pagina toevoegen', columnLink: 'Link', columnImage: 'Screenshot', columnDescription: 'Beschrijving', deleteRow: 'Rij verwijderen', defaultPageName: 'Start', readmeOpenError: '⚠️ Kon readme.txt niet openen. Zorg dat het naast LinkVault.html staat', dataSaved: '✅ Gegevens opgeslagen in bestand!', fileDownloaded: '✅ Bestand gedownload! Verplaats het naar de map MyLinks', saveError: '❌ Fout bij opslaan: ', loadError: '❌ Fout bij laden: ', invalidFileFormat: 'Ongeldig bestandsformaat', importConfirm: 'Gegevens uit bestand laden? Huidige gegevens worden vervangen.', dataLoaded: '✅ Gegevens geladen!', importError: '❌ Importfout: ', linkPlaceholder: 'Plak een link...', imagePlaceholder: 'Ctrl+V of rechtsklik → Plakken', descPlaceholder: 'Voeg een beschrijving toe...', newPagePrompt: 'Paginanaam:', newPageDefault: 'Nieuw', cannotDeleteOnlyPage: 'Je kunt de enige pagina niet verwijderen.', deletePageConfirm: 'Pagina en alle gegevens verwijderen?', deleteRowConfirm: 'Rij verwijderen? Alle gegevens worden permanent verwijderd.' }
+        };
+        const languageNames = {
+            ru: 'Русский', en: 'English', zh: '中文', hi: 'हिन्दी', es: 'Español',
+            ar: 'العربية', fr: 'Français', bn: 'বাংলা', pt: 'Português', id: 'Indonesia',
+            ur: 'اردو', de: 'Deutsch', ja: '日本語', sw: 'Kiswahili', tr: 'Türkçe',
+            ko: '한국어', it: 'Italiano', vi: 'Tiếng Việt', fa: 'فارسی', pl: 'Polski',
+            uk: 'Українська', nl: 'Nederlands'
+        };
+        let currentLang = translations[localStorage.getItem(LANG_KEY)] ? localStorage.getItem(LANG_KEY) : 'ru';
+
+        function t(key) {
+            return (translations[currentLang] && translations[currentLang][key]) || translations.en[key] || key;
+        }
+
+        function initLanguageSelect() {
+            const select = document.getElementById('languageSelect');
+            if (!select || select.options.length) return;
+            Object.keys(languageNames).forEach(code => {
+                const option = document.createElement('option');
+                option.value = code;
+                option.textContent = languageNames[code];
+                select.appendChild(option);
+            });
+        }
+
+        function applyTranslations() {
+            document.documentElement.lang = currentLang;
+            document.documentElement.dir = ['ar', 'fa', 'ur'].includes(currentLang) ? 'rtl' : 'ltr';
+            document.title = t('appTitle');
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                el.textContent = t(el.dataset.i18n);
+            });
+            document.querySelectorAll('[data-i18n-title]').forEach(el => {
+                el.title = t(el.dataset.i18nTitle);
+            });
+            const select = document.getElementById('languageSelect');
+            if (select) select.value = currentLang;
+        }
+
+        function setLanguage(lang, shouldRender = true) {
+            if (!translations[lang]) return;
+            currentLang = lang;
+            localStorage.setItem(LANG_KEY, lang);
+            initLanguageSelect();
+            applyTranslations();
+            if (shouldRender) {
+                renderTabs();
+                renderTable();
+            }
+        }
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                req.onupgradeneeded = e => {
+                    const d = e.target.result;
+                    if (!d.objectStoreNames.contains('pages')) d.createObjectStore('pages', { keyPath: 'id' });
+                };
+                req.onsuccess = e => { db = e.target.result; resolve(db); };
+                req.onerror = e => reject(e.target.error);
+            });
+        }
+
+        async function savePage(page) {
+            return new Promise((res, rej) => {
+                const tx = db.transaction('pages', 'readwrite');
+                tx.objectStore('pages').put(page);
+                tx.oncomplete = () => res();
+                tx.onerror = e => rej(e.target.error);
+            });
+        }
+
+        async function loadPages() {
+            return new Promise((res, rej) => {
+                const tx = db.transaction('pages', 'readonly');
+                const req = tx.objectStore('pages').getAll();
+                req.onsuccess = () => res(req.result || []);
+                req.onerror = e => rej(e.target.error);
+            });
+        }
+
+        let pages = [];
+        let activePageId = null;
+        let contextRowIdx = null;
+        let dragSrcIdx = null;
+
+        function isDefaultPageName(name) {
+            return Object.values(translations).some(lang => lang.defaultPageName === name);
+        }
+
+        function createEmptyRow() {
+            return { link: '', image: null, desc: '' };
+        }
+
+        // Приводит страницу из базы или резервной копии к текущему формату,
+        // чтобы ранее сохранённые ссылки открывались без ошибок.
+        function normalizePage(page, index = 0) {
+            const source = (page && typeof page === 'object') ? page : {};
+            const normalized = {
+                id: (typeof source.id === 'string' && source.id) ? source.id : 'p_' + Date.now() + '_' + index,
+                name: (typeof source.name === 'string' && source.name.trim()) ? source.name.trim() : t('defaultPageName'),
+                rows: []
+            };
+            if (source.nameKey && Object.values(translations).some(lang => lang[source.nameKey])) {
+                normalized.nameKey = source.nameKey;
+            }
+
+            const rows = Array.isArray(source.rows) ? source.rows : [];
+            rows.forEach(row => {
+                const r = (row && typeof row === 'object') ? row : {};
+                const link = typeof r.link === 'string' ? r.link : '';
+                const desc = typeof r.desc === 'string' ? r.desc : '';
+                const image = (typeof r.image === 'string' && r.image) ? r.image : null;
+                if (link || desc || image) normalized.rows.push({ link, image, desc });
+            });
+            normalized.rows.push(createEmptyRow());
+
+            return normalized;
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            setLanguage(currentLang, false);
+            try {
+                await initDB();
+                const storedPages = await loadPages();
+
+                if (!storedPages.length) {
+                    const def = { id: 'p_' + Date.now(), name: t('defaultPageName'), nameKey: 'defaultPageName', rows: [createEmptyRow()] };
+                    pages = [def];
+                    await savePage(def);
+                } else {
+                    for (const page of storedPages) {
+                        if (page && !page.nameKey && isDefaultPageName(page.name)) {
+                            page.nameKey = 'defaultPageName';
+                            await savePage(page);
+                        }
+                    }
+                    pages = storedPages.map((page, index) => normalizePage(page, index));
+                }
+
+                activePageId = pages[0].id;
+                renderTabs();
+                renderTable();
+            } catch (err) {
+                showNotification(t('loadError') + err.message, true);
+            }
+        });
+
+        // === ОТКРЫТЬ О ПРОГРАММЕ ===
+        function openAbout() {
+            // Пытаемся открыть readme.txt из той же папки
+            const newWindow = window.open('readme.txt', '_blank');
+            
+            // Если браузер заблокировал открытие — показываем подсказку
+            if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+                showNotification(t('readmeOpenError'), true);
+            }
+        }
+
+        // === СОХРАНЕНИЕ В ФАЙЛ ===
+        async function saveToFile() {
+            try {
+                const data = JSON.stringify(pages, null, 2);
+                
+                if ('showSaveFilePicker' in window) {
+                    if (!fileHandle) {
+                        fileHandle = await window.showSaveFilePicker({
+                            suggestedName: 'LinkVault_backup.json',
+                            types: [{
+                                description: 'LinkVault Backup',
+                                accept: { 'application/json': ['.json'] }
+                            }]
+                        });
+                    }
+                    
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(data);
+                    await writable.close();
+                    
+                    showNotification(t('dataSaved'));
+                } else {
+                    const blob = new Blob([data], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'LinkVault_backup.json';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    
+                    showNotification(t('fileDownloaded'));
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    showNotification(t('saveError') + err.message, true);
+                }
+            }
+        }
+
+        // === ЗАГРУЗКА ИЗ ФАЙЛА ===
+        function loadFromFile() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json,application/json';
+            input.onchange = async e => {
+                const file = e.target.files && e.target.files[0];
+                if (!file) return;
+                try {
+                    const text = await file.text();
+                    await importData(text);
+                } catch (err) {
+                    showNotification(t('loadError') + err.message, true);
+                }
+            };
+            input.click();
+        }
+
+        async function importData(data) {
+            try {
+                const imported = JSON.parse(data);
+                if (!Array.isArray(imported) || !imported.length) throw new Error(t('invalidFileFormat'));
+
+                if (!confirm(t('importConfirm'))) return;
+
+                const importedPages = imported.map((page, index) => normalizePage(page, index));
+
+                // Сначала очищаем хранилище отдельной транзакцией и дожидаемся её завершения,
+                // затем записываем страницы из файла.
+                await new Promise((res, rej) => {
+                    const tx = db.transaction('pages', 'readwrite');
+                    tx.objectStore('pages').clear();
+                    tx.oncomplete = () => res();
+                    tx.onerror = e => rej(e.target.error);
+                    tx.onabort = () => rej(tx.error || new Error(t('invalidFileFormat')));
+                });
+
+                for (const page of importedPages) {
+                    await savePage(page);
+                }
+
+                pages = importedPages;
+                activePageId = pages[0].id;
+                renderTabs();
+                renderTable();
+                showNotification(t('dataLoaded'));
+            } catch (err) {
+                showNotification(t('importError') + err.message, true);
+            }
+        }
+
+        function showNotification(msg, isError = false) {
+            const notif = document.getElementById('notification');
+            notif.textContent = msg;
+            notif.style.background = isError ? 'var(--danger)' : 'var(--success)';
+            notif.classList.add('show');
+            setTimeout(() => notif.classList.remove('show'), 3000);
+        }
+
+        function renderTabs() {
+            const c = document.getElementById('tabsContainer');
+            const btn = c.querySelector('.add-tab');
+            c.innerHTML = '';
+
+            pages.forEach(p => {
+                const tab = document.createElement('div');
+                tab.className = 'tab ' + (p.id === activePageId ? 'active' : '');
+
+                const nameSpan = document.createElement('span');
+                nameSpan.contentEditable = 'true';
+                nameSpan.textContent = p.nameKey ? t(p.nameKey) : p.name;
+                nameSpan.onblur = () => renamePage(p.id, nameSpan.innerText);
+                nameSpan.onkeydown = e => {
+                    if (e.key === 'Enter') { e.preventDefault(); nameSpan.blur(); }
+                };
+
+                const close = document.createElement('span');
+                close.className = 'tab-close';
+                close.textContent = '×';
+                close.onclick = e => { e.stopPropagation(); deletePage(p.id); };
+
+                tab.appendChild(nameSpan);
+                tab.appendChild(close);
+                tab.onclick = e => {
+                    if (!e.target.classList.contains('tab-close') && !e.target.isContentEditable) {
+                        activePageId = p.id; renderTabs(); renderTable();
+                    }
+                };
+                c.appendChild(tab);
+            });
+
+            if (btn) c.appendChild(btn);
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            const page = pages.find(p => p.id === activePageId);
+            if (!page) return;
+
+            const linkCounts = {};
+            page.rows.forEach(row => {
+                if (row.link) linkCounts[row.link] = (linkCounts[row.link] || 0) + 1;
+            });
+
+            page.rows.forEach((row, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = 'draggable';
+                tr.draggable = true;
+                tr.dataset.idx = idx;
+
+                if (row.link && linkCounts[row.link] > 1) tr.classList.add('duplicate');
+
+                tr.addEventListener('dragstart', handleDragStart);
+                tr.addEventListener('dragover', handleDragOver);
+                tr.addEventListener('drop', handleDrop);
+                tr.addEventListener('dragend', handleDragEnd);
+                tr.addEventListener('dragenter', handleDragEnter);
+                tr.addEventListener('dragleave', handleDragLeave);
+
+                const tdNum = document.createElement('td');
+                tdNum.className = 'col-num';
+                tdNum.innerText = idx + 1;
+                tdNum.oncontextmenu = e => {
+                    e.preventDefault(); contextRowIdx = idx;
+                    tr.classList.add('context-active');
+                    const m = document.getElementById('contextMenu');
+                    m.style.display = 'block'; m.style.left = e.pageX + 'px'; m.style.top = e.pageY + 'px';
+                };
+                tr.appendChild(tdNum);
+
+                const tdLink = document.createElement('td');
+                tdLink.className = 'col-link link-cell';
+                tdLink.contentEditable = true;
+                tdLink.dataset.field = 'link';
+                tdLink.dataset.idx = idx;
+                if (row.link) {
+                    const short = row.link.length > 45 ? row.link.slice(0,45)+'...' : row.link;
+                    tdLink.innerHTML = `<a href="${row.link}" target="_blank" class="truncate">${short}<span class="tooltip-text">${row.link}</span></a>`;
+                } else {
+                    tdLink.innerHTML = `<span class="placeholder">${t('linkPlaceholder')}</span>`;
+                }
+                setupCell(tdLink, row, idx);
+                tr.appendChild(tdLink);
+
+                const tdImg = document.createElement('td');
+                tdImg.className = 'col-img';
+                tdImg.contentEditable = true;
+                tdImg.spellcheck = false;
+                if (row.image) {
+                    tdImg.innerHTML = `<div class="img-wrapper"><img src="${row.image}" ondblclick="showModal('${row.image}')"><button class="img-delete" onclick="event.stopPropagation(); delImage(${idx})">✕</button></div>`;
+                } else {
+                    tdImg.innerHTML = `<span class="placeholder">${t('imagePlaceholder')}</span>`;
+                }
+                tdImg.onfocus = function() { if(this.querySelector('.placeholder')) this.innerHTML = ''; };
+                tdImg.onblur = function() {
+                    if (!row.image && this.innerHTML.trim() === '') this.innerHTML = `<span class="placeholder">${t('imagePlaceholder')}</span>`;
+                    else if (!row.image) this.innerHTML = `<span class="placeholder">${t('imagePlaceholder')}</span>`;
+                };
+                tdImg.onpaste = e => pasteImage(e, idx);
+                tr.appendChild(tdImg);
+
+                const tdDesc = document.createElement('td');
+                tdDesc.className = 'col-desc';
+                tdDesc.contentEditable = true;
+                tdDesc.dataset.field = 'desc';
+                tdDesc.dataset.idx = idx;
+                if (row.desc) {
+                    const short = row.desc.length > 70 ? row.desc.slice(0,70)+'...' : row.desc;
+                    tdDesc.innerHTML = `<span class="truncate">${short}<span class="tooltip-text">${row.desc}</span></span>`;
+                } else {
+                    tdDesc.innerHTML = `<span class="placeholder">${t('descPlaceholder')}</span>`;
+                }
+                setupCell(tdDesc, row, idx);
+                tr.appendChild(tdDesc);
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        function handleDragStart(e) {
+            dragSrcIdx = parseInt(this.dataset.idx);
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', dragSrcIdx);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+            this.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        async function handleDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.remove('drag-over');
+            
+            const dragIdx = parseInt(e.dataTransfer.getData('text/plain'));
+            const dropIdx = parseInt(this.dataset.idx);
+            
+            if (dragIdx !== dropIdx && dragIdx !== null) {
+                const page = pages.find(p => p.id === activePageId);
+                const [movedRow] = page.rows.splice(dragIdx, 1);
+                page.rows.splice(dropIdx, 0, movedRow);
+                await savePage(page);
+                renderTable();
+            }
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            document.querySelectorAll('tr').forEach(tr => tr.classList.remove('drag-over'));
+        }
+
+        function setupCell(cell, row, idx) {
+            cell.onfocus = function() { if(this.querySelector('.placeholder')) this.innerText = ''; };
+            cell.onblur = function() { saveCell(this, idx); };
+            cell.onmouseenter = function() { positionTooltip(this.querySelector('.tooltip-text')); };
+            cell.onmouseleave = function() {
+                const t = this.querySelector('.tooltip-text');
+                if(t) { t.style.visibility = 'hidden'; t.style.opacity = '0'; }
+            };
+        }
+
+        async function saveCell(cell, idx) {
+            const page = pages.find(p => p.id === activePageId);
+            const field = cell.dataset.field;
+            let val = cell.innerText.trim();
+            const placeholder = field === 'link' ? t('linkPlaceholder') : t('descPlaceholder');
+            
+            if (val === '' || val === placeholder) {
+                if (page.rows[idx][field] !== '') {
+                    page.rows[idx][field] = '';
+                    await commitAndRender(page, idx);
+                }
+                return;
+            }
+
+            if (field === 'link') {
+                val = val.split(/\s+/)[0];
+                val = val.replace(/^https?:\/\//i, '');
+                val = 'https://' + val;
+            }
+
+            if (page.rows[idx][field] !== val) {
+                page.rows[idx][field] = val;
+                await commitAndRender(page, idx);
+            }
+        }
+
+        async function commitAndRender(page, idx) {
+            await savePage(page);
+            if (idx === page.rows.length - 1 && (page.rows[idx].link || page.rows[idx].desc)) {
+                page.rows.push({ link: '', image: null, desc: '' });
+                await savePage(page);
+            }
+            renderTable();
+        }
+
+        function pasteImage(e, idx) {
+            e.preventDefault();
+            const items = e.clipboardData.items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.startsWith('image/')) {
+                    const blob = items[i].getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = async ev => {
+                        const page = pages.find(p => p.id === activePageId);
+                        page.rows[idx].image = ev.target.result;
+                        await savePage(page);
+                        renderTable();
+                    };
+                    reader.readAsDataURL(blob);
+                    return;
+                }
+            }
+        }
+
+        async function delImage(idx) {
+            const page = pages.find(p => p.id === activePageId);
+            page.rows[idx].image = null;
+            await savePage(page);
+            renderTable();
+        }
+
+        async function addNewPage() {
+            const name = prompt(t('newPagePrompt'), t('newPageDefault'));
+            if (!name) return;
+            const np = { id: 'p_' + Date.now(), name, rows: [{ link: '', image: null, desc: '' }] };
+            pages.push(np); await savePage(np);
+            activePageId = np.id; renderTabs(); renderTable();
+        }
+
+        async function renamePage(id, name) {
+            const p = pages.find(x => x.id === id);
+            if (p && name.trim()) {
+                p.name = name.trim();
+                delete p.nameKey;
+                await savePage(p);
+                renderTabs();
+            }
+        }
+
+        async function deletePage(id) {
+            if (pages.length <= 1) return alert(t('cannotDeleteOnlyPage'));
+            if (!confirm(t('deletePageConfirm'))) return;
+            const tx = db.transaction('pages', 'readwrite');
+            tx.objectStore('pages').delete(id);
+            tx.oncomplete = async () => {
+                pages = await loadPages();
+                activePageId = pages[0].id; renderTabs(); renderTable();
+            };
+        }
+
+        async function deleteContextRow() {
+            if (contextRowIdx === null) return;
+            if (!confirm(t('deleteRowConfirm'))) return;
+            const page = pages.find(p => p.id === activePageId);
+            page.rows.splice(contextRowIdx, 1);
+            if (!page.rows.length) page.rows.push({ link: '', image: null, desc: '' });
+            await savePage(page);
+            contextRowIdx = null;
+            document.getElementById('contextMenu').style.display = 'none';
+            renderTable();
+        }
+
+        document.addEventListener('click', e => {
+            if (!e.target.closest('#contextMenu')) {
+                document.getElementById('contextMenu').style.display = 'none';
+                document.querySelectorAll('.context-active').forEach(el => el.classList.remove('context-active'));
+                contextRowIdx = null;
+            }
+        });
+
+        function showModal(src) {
+            document.getElementById('modalImage').src = src;
+            document.getElementById('imageModal').style.display = 'flex';
+        }
+
+        function positionTooltip(tooltip) {
+            if (!tooltip) return;
+            tooltip.style.visibility = 'visible'; tooltip.style.opacity = '1';
+            const rect = tooltip.parentElement.getBoundingClientRect();
+            const tW = tooltip.offsetWidth;
+            const tH = tooltip.offsetHeight;
+            const vW = window.innerWidth;
+
+            let left = rect.left;
+            let top = rect.top - tH - 8;
+
+            if (left + tW > vW - 10) left = vW - tW - 10;
+            if (left < 10) left = 10;
+            if (top < 10) top = rect.bottom + 8;
+            
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+        }
+    </script>
+    <script>
+        // Регистрация service worker: установка как приложение и работа без интернета.
+        if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .catch(err => console.warn('Service worker registration failed:', err));
+            });
+        }
+    </script>
+</body>
+</html>
