@@ -41,9 +41,9 @@ On first launch, LinkVault creates one default page. In English it is named `Hom
 Russian it is `Главная`; in other interface languages it is translated as well.
 
 - To create a new page, click the `+` button next to the page tabs.
-- To rename a page, click the page name, type a new name, then press `Enter` or click
-  somewhere else.
 - To switch pages, click the page tab you want.
+- To rename a page, double-click the page name, type a new name, then press `Enter` or
+  click somewhere else.
 - To delete a page, click the `×` button on the tab.
 
 If you manually rename the default page, it becomes a custom page name and is no longer

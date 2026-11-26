@@ -1,7 +1,7 @@
 // Service worker for LinkVault.
 // The app itself is one HTML file; the worker only makes it installable and
 // available offline. User data lives in IndexedDB and is never cached here.
-const CACHE_NAME = 'linkvault-v1.1.0';
+const CACHE_NAME = 'linkvault-v1.1.1';
 
 const APP_ASSETS = [
   './index.html',
