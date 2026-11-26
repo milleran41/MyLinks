@@ -31,40 +31,65 @@ https://milleran41.github.io/MyLinks/LinkVault.html
 Проверьте в браузере: страница открывается по HTTPS, в DevTools → Application есть
 манифест, иконки и активный service worker, приложение устанавливается как PWA.
 
-## 2. Partner Center: аккаунт и имя продукта
+## 2. Аккаунт разработчика и резервирование имени
 
-1. <https://partner.microsoft.com/dashboard> → регистрация (индивидуальный аккаунт
-   Microsoft Store стоит разово; для физлица нужен проверенный профиль).
-2. **Apps and games → New product → MSIX or PWA app** → зарезервируйте имя `LinkVault`.
-3. Откройте продукт → **Product management → Product identity** и скопируйте три значения:
-   - `Package/Identity/Name`
-   - `Package/Identity/Publisher` (вид `CN=...`)
-   - `Package/Properties/PublisherDisplayName`
+Регистрация в Store сейчас бесплатная, платить взнос не нужно — требуется только
+проверка личности (государственный ID + селфи с телефона).
 
-Эти значения должны попасть в пакет, иначе магазин отклонит загрузку.
+1. <https://storedeveloper.microsoft.com/> → **Get started for free** → **Individual developer**.
+   Начинать нужно именно с этой страницы: вход напрямую в Partner Center показывает
+   старый поток с платной регистрацией.
+2. Войдите личным Microsoft-аккаунтом, пройдите проверку личности, заполните профиль →
+   **Go to Partner Center dashboard**.
+3. <https://partner.microsoft.com/ru-ru/dashboard/apps-and-games/overview> → **New product**
+   → **MSIX or PWA app** → имя `LinkVault` → **Check availability** → **Reserve product name**.
+   Зарезервированное имя хранится 3 месяца, пока не отправлена заявка.
+4. Откройте продукт → **Product management → Product identity** и скопируйте значения:
 
-## 3. Сборка MSIX в PWABuilder
+```
+Package/Identity/Name            (например 12345Publisher.LinkVault)
+Package/Identity/Publisher       (CN=...)
+Package/Properties/PublisherDisplayName
+Package family name              (нужен только для проверки установки)
+```
 
-1. <https://www.pwabuilder.com> → вставьте адрес приложения → **Start**.
-2. Проверьте отчёт (manifest, service worker, HTTPS — всё должно быть зелёным).
-3. **Package for Stores → Windows** → введите три значения из Product identity.
-4. Скачайте пакет. В архиве будет `.msix` (тестовая подпись — только для локальной
-   установки, для магазина её не используйте) и `appxmanifest.xml`.
-5. Локальная проверка (необязательно): установите тестовый сертификат из архива,
-   затем `Add-AppxPackage .\LinkVault.msix` в PowerShell и запустите приложение из меню
-   «Пуск». Проверьте сохранение ссылок, скриншоты через `Ctrl+V`, кнопки «Сохранить» /
-   «Загрузить» и работу без интернета.
+Первые три значения попадают в манифест пакета. Если они не совпадут с Product identity,
+Partner Center отклонит загрузку — это самая частая ошибка первой отправки.
 
-Альтернатива без PWABuilder — собрать MSIX вручную (`makeappx` + `signtool` из Windows
-SDK) по тому же `appxmanifest.xml`. Для магазина это не требуется: Microsoft подписывает
-пакет сама при сертификации.
+## 3. Сборка MSIX
+
+Пакет для магазина — hosted PWA: внутри нет файлов приложения, только манифест, который
+открывает `https://milleran41.github.io/MyLinks/LinkVault.html` в Edge.
+
+1. <https://www.pwabuilder.com> → адрес `https://milleran41.github.io/MyLinks/LinkVault.html`
+   → **Start**. Отчёт должен быть зелёным (manifest, service worker, HTTPS).
+2. **Package for Stores → Windows** → вставьте значения из Product identity:
+   Package ID = `Package/Identity/Name`, Publisher ID = `Package/Identity/Publisher`,
+   Publisher display name = `Package/Properties/PublisherDisplayName` →
+   **Download Package**.
+3. В архиве: `LinkVault.msixbundle` (Windows 10 2004 и новее), `*.classic.appxbundle`
+   (старые сборки Windows), `appxmanifest.xml` и тестовый сертификат для локальной
+   установки.
+4. Для магазина подпись не нужна: Partner Center подписывает пакет при сертификации.
+   Тестовый сертификат из архива загружать не нужно — он только для локальной проверки.
+5. Версия пакета состоит из четырёх чисел: сейчас `1.1.1.0`. Для обновления она должна быть
+   выше предыдущей.
+
+Локальная сборка без PWABuilder тоже возможна: `makeappx.exe` из Windows SDK на этой
+машине есть (C:/Program Files (x86)/Windows Kits/10/App Certification Kit/makeappx.exe),
+но hosted-пакет генерирует закрытый `pwa_builder.exe` от Edge — он же считает
+`resources.pri` и `--app-id`, — поэтому повторять его вручную рискованно.
+
+Проверка перед отправкой (необязательно, но полезно): установить тестовый сертификат,
+выполнить `Add-AppxPackage .\LinkVault.msixbundle`, запустить приложение из «Пуск» и
+проверить сохранение ссылок, Ctrl+V, «Сохранить»/«Загрузить» и работу без интернета.
 
 ## 4. Заявка в Partner Center
 
 **New submission** для продукта `LinkVault`:
 
 1. **Packages** — загрузите `.msix`. Версия в манифесте должна быть выше предыдущей
-   (например `1.1.0.0`).
+   (например `1.1.1.0`).
 2. **Properties**:
    - Category: **Productivity**
    - Privacy policy URL: `https://github.com/milleran41/MyLinks/blob/main/PRIVACY.md`
